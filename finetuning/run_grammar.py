@@ -313,14 +313,23 @@ def main():
         # Yerel dosyaları kullan
         data_files = {}
         delimiter = ','  # Varsayılan ayırıcı
-        for key in ["train", "valid", "test"]:
-            file_path = getattr(data_args, f"{key}_file", None)
-            if file_path:
-                data_files[key] = file_path
-                if file_path.endswith('.tsv'):
-                    delimiter = '\t'  # TSV dosyaları için tab ayırıcı kullan
+
+        # 'train', 'valid' ve 'test' için dosya yollarını kontrol et ve ayırıcıyı ayarla
+        if data_args.train_file is not None:
+            data_files["train"] = data_args.train_file
+            if data_args.train_file.endswith('.tsv'):
+                delimiter = '\t'  # TSV dosyası için tab ayırıcı kullan
+        if data_args.validation_file is not None:
+            data_files["valid"] = data_args.validation_file
+            if data_args.validation_file.endswith('.tsv'):
+                delimiter = '\t'  # TSV dosyası için tab ayırıcı kullan
+        if data_args.test_file is not None:
+            data_files["test"] = data_args.test_file
+            if data_args.test_file.endswith('.tsv'):
+                delimiter = '\t'  # TSV dosyası için tab ayırıcı kullan
 
         raw_datasets = load_dataset('csv', data_files=data_files, delimiter=delimiter, cache_dir=model_args.cache_dir)
+
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
@@ -416,7 +425,10 @@ def main():
             target_text = examples[target_column][i]
             if source_text and target_text and len(source_text) >= data_args.min_length and len(target_text) >= data_args.min_length:
                 # 'grammar:' ön ekini doğrudan kullanın
-                inputs.append(data_args.source_prefix + source_text)
+                if not source_text.startswith(data_args.source_prefix):
+                    inputs.append(data_args.source_prefix + source_text)
+                else:
+                    inputs.append(source_text)
                 targets.append(target_text)
 
         model_inputs = tokenizer(inputs, max_length=data_args.max_source_length, padding=padding, truncation=True)
