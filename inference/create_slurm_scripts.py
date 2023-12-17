@@ -14,7 +14,7 @@ for model in models:
             out_file = f"{out_path}/{model_name}-{setting}-{split}.sh"
             with open(out_file, "w") as f:
                 f.write(header.format(model_name=model_name,dataset_name=setting,split=split))
-                full_model_name = model + "-" + params["suffix"]
+                full_model_name = f"{model}-" + params["suffix"]
                 f.write(command.format(
                     model=full_model_name,
                     config=params.get("config", setting),
