@@ -138,7 +138,7 @@ name_mapping = {
 def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments))
     model_args, data_args = parser.parse_args_into_dataclasses()
-    
+
     # Setup logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -190,7 +190,7 @@ def main():
             raise ValueError(
                 f"--target_column' value '{data_args.target_column}' needs to be one of: {', '.join(column_names)}"
             )
-    
+
     def preprocess_function(examples):
         # remove pairs where at least one record is None
         inputs, targets = [], []
@@ -200,7 +200,7 @@ def main():
                 targets.append(examples[target_column][i])
         model_inputs = tokenizer(inputs, max_length=data_args.max_source_length, padding="max_length", truncation=True)
         return model_inputs
-    
+
     predict_dataset = dataset[data_args.dataset_split].map(
         preprocess_function,
         batched=True,
@@ -218,7 +218,7 @@ def main():
     }
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.eval().to(device)
-    print(f"Inferencing...")
+    print("Inferencing...")
     predictions = []
     for i, batch in enumerate(tqdm(dataloader)):
         batch = {k: v.to(device) for k, v in batch.items()}
