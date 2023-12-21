@@ -227,7 +227,7 @@ class DataTrainingArguments:
         },
     )
     source_prefix: Optional[str] = field(
-        default="grammar:", metadata={"help": "A prefix to add before every source text (useful for T5 models)."}
+        default="grammar: ", metadata={"help": "A prefix to add before every source text (useful for T5 models)."}
     )
 
     def __post_init__(self):
