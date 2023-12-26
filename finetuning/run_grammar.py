@@ -17,7 +17,8 @@
 Fine-tuning the library models for sequence to sequence.
 """
 # You can also adapt this script on your own sequence to sequence task. Pointers for this are left as comments.
-
+import re
+from nltk.tokenize import sent_tokenize
 import logging
 import os
 import sys
@@ -513,12 +514,35 @@ def main():
         pad_to_multiple_of=8 if training_args.fp16 else None,
     )
 
+    # Define a function to preprocess text to handle bullet point numberings
+    def preprocess_bullets(text):
+        # Replace '1.' with '1|' (or another unique marker)
+        processed_text = re.sub(r"(\d+)\.", r"\1|", text)
+        return processed_text
+
+
+    # Define a function to postprocess sentences to restore bullet point numberings
+    def postprocess_bullets(sentences):
+        # Replace '1|' back to '1.' in each sentence
+        processed_sentences = [
+            re.sub(r"(\d+)\|", r"\1.", sentence) for sentence in sentences
+        ]
+        return processed_sentences
+
+
+    def split_sentences(text):
+        preprocessed_text = preprocess_bullets(text)
+        tokenized_sentences = sent_tokenize(preprocessed_text)
+        final_sentences = postprocess_bullets(tokenized_sentences)
+        return final_sentences[0]
     # Metric
     metric = load_metric("rouge")
 
     def postprocess_text(preds, labels):
         preds = [pred.strip() for pred in preds]
         labels = [label.strip() for label in labels]
+
+        preds = [split_sentences(pred) for pred in preds]
 
         # rougeLSum expects newline after each sentence
         # preds = ["\n".join(nltk.sent_tokenize(pred)) for pred in preds]
@@ -539,7 +563,7 @@ def main():
         # Some simple post-processing
         decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
 
-        result = metric.compute(predictions=decoded_preds, references=decoded_labels, use_stemmer=True)
+        result = metric.compute(predictions=decoded_preds, references=decoded_labels, use_stemmer=False)
         # Extract a few results from ROUGE
         result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
 
