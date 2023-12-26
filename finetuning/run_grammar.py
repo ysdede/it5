@@ -135,7 +135,7 @@ class DataTrainingArguments:
         metadata={"help": "The name of the column in the dataset containing the target texts."},
     )
     min_length: int = field(
-        default=10,
+        default=1,
         metadata={"help": "Minimum length for source and target texts to be included in the dataset."}
     )
     train_file: Optional[str] = field(
@@ -227,8 +227,16 @@ class DataTrainingArguments:
         },
     )
     source_prefix: Optional[str] = field(
-        default="grammar: ", metadata={"help": "A prefix to add before every source text (useful for T5 models)."}
+        default=None, metadata={"help": "A prefix to add before every source text (useful for T5 models)."}
     )
+    # load_best_model_at_end: bool = field(
+    #     default=True,
+    #     metadata={"help": "Whether to load the best model found during training at the end of training."}
+    # )
+    # metric_for_best_model: Optional[str] = field(
+    #     default="loss",
+    #     metadata={"help": "The metric to use to compare two different models."}
+    # )
 
     def __post_init__(self):
         if self.dataset_name is None and self.train_file is None and self.validation_file is None:
@@ -425,7 +433,7 @@ def main():
             target_text = examples[target_column][i]
             if source_text and target_text and len(source_text) >= data_args.min_length and len(target_text) >= data_args.min_length:
                 # 'grammar:' ön ekini doğrudan kullanın
-                if not source_text.startswith(data_args.source_prefix):
+                if data_args.source_prefix and not source_text.startswith(data_args.source_prefix):
                     inputs.append(data_args.source_prefix + source_text)
                 else:
                     inputs.append(source_text)
@@ -435,7 +443,7 @@ def main():
 
         # Setup the tokenizer for targets
         with tokenizer.as_target_tokenizer():
-            labels = tokenizer(targets, max_length=max_target_length, padding=padding, truncation=True)
+            labels = tokenizer(targets, max_length=data_args.max_target_length, padding=padding, truncation=True)
 
         # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore padding in the loss.
         if padding == "max_length" and data_args.ignore_pad_token_for_loss:
@@ -540,6 +548,10 @@ def main():
         result = {k: round(v, 4) for k, v in result.items()}
         return result
 
+    print(f'Before: {training_args.load_best_model_at_end=} - {training_args.metric_for_best_model=}')
+    training_args.load_best_model_at_end = True
+    training_args.metric_for_best_model = "loss"
+    print(f'After: {training_args.load_best_model_at_end=} - {training_args.metric_for_best_model=}')
     # Initialize our Trainer
     trainer = Seq2SeqTrainer(
         model=model,
