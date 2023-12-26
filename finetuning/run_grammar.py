@@ -573,9 +573,9 @@ def main():
         return result
 
     print(f'Before: {training_args.load_best_model_at_end=} - {training_args.metric_for_best_model=}')
-    training_args.load_best_model_at_end = True
-    training_args.metric_for_best_model = "loss"
-    print(f'After: {training_args.load_best_model_at_end=} - {training_args.metric_for_best_model=}')
+    # training_args.load_best_model_at_end = True
+    # training_args.metric_for_best_model = "loss"
+    # print(f'After: {training_args.load_best_model_at_end=} - {training_args.metric_for_best_model=}')
     # Initialize our Trainer
     trainer = Seq2SeqTrainer(
         model=model,
