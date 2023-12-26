@@ -590,7 +590,11 @@ def main():
         if training_args.generation_max_length is not None
         else data_args.val_max_target_length
     )
+
+    print(f"Max length for generation: {max_length}")
+
     num_beams = data_args.num_beams if data_args.num_beams is not None else training_args.generation_num_beams
+
     if training_args.do_eval:
         logger.info("*** Evaluate ***")
         metrics = trainer.evaluate(max_length=max_length, num_beams=num_beams, metric_key_prefix="eval")
@@ -625,7 +629,7 @@ def main():
                 with open(output_prediction_file, "w") as writer:
                     writer.write("\n".join(predictions))
 
-    kwargs = {"finetuned_from": model_args.model_name_or_path, "tasks": "summarization"}
+    kwargs = {"finetuned_from": model_args.model_name_or_path, "tasks": "grammar"}
     if data_args.dataset_name is not None:
         kwargs["dataset_tags"] = data_args.dataset_name
         if data_args.dataset_config_name is not None:
