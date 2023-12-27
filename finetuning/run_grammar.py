@@ -429,17 +429,18 @@ def main():
         )
 
     def preprocess_function(examples):
-        inputs, targets = [], []
-        for i in range(len(examples[source_column])):
-            source_text = examples[source_column][i]
-            target_text = examples[target_column][i]
-            if source_text and target_text and len(source_text) >= data_args.min_length and len(target_text) >= data_args.min_length:
-                # 'grammar:' ön ekini doğrudan kullanın
-                if data_args.source_prefix and not source_text.startswith(data_args.source_prefix):
-                    inputs.append(data_args.source_prefix + source_text)
-                else:
-                    inputs.append(source_text)
-                targets.append(target_text)
+        # inputs, targets = [], []
+        # for i in range(len(examples[source_column])):
+        #     source_text = examples[source_column][i]
+        #     target_text = examples[target_column][i]
+        #     if source_text and target_text and len(source_text) >= data_args.min_length and len(target_text) >= data_args.min_length:
+        #         # 'grammar:' ön ekini doğrudan kullanın
+        #         if data_args.source_prefix and not source_text.startswith(data_args.source_prefix):
+        #             inputs.append(data_args.source_prefix + source_text)
+        #         else:
+        #             inputs.append(source_text)
+        #         targets.append(target_text)
+        inputs, targets = examples[source_column], examples[target_column]
 
         model_inputs = tokenizer(inputs, max_length=data_args.max_source_length, padding=padding, truncation=True)
 
@@ -570,6 +571,7 @@ def main():
 
         distances = []
         for dec_pred, dec_label in zip(decoded_preds, decoded_labels):
+            print(f"{dec_label}->{dec_pred}")
             distances.append(Levenshtein.distance(dec_pred, dec_label))
 
         lev_dist_avg = round(np.mean(distances), 3)
