@@ -19,6 +19,7 @@ Fine-tuning the library models for sequence to sequence.
 # You can also adapt this script on your own sequence to sequence task. Pointers for this are left as comments.
 import re
 from nltk.tokenize import sent_tokenize
+import Levenshtein
 import logging
 import os
 import sys
@@ -348,13 +349,13 @@ def main():
     # The .from_pretrained methods guarantee that only one local process can concurrently
     # download model & vocab.
     config = AutoConfig.from_pretrained(
-        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+        model_args.config_name or model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         use_auth_token=model_args.use_auth_token,
     )
     tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+        model_args.tokenizer_name or model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         use_fast=model_args.use_fast_tokenizer,
         revision=model_args.model_revision,
@@ -567,8 +568,15 @@ def main():
         # Extract a few results from ROUGE
         result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
 
+        distances = []
+        for dec_pred, dec_label in zip(decoded_preds, decoded_labels):
+            distances.append(Levenshtein.distance(dec_pred, dec_label))
+
+        lev_dist_avg = round(np.mean(distances), 3)
+        logger.info(f"Eval batch avg. Levenshtein distance: {lev_dist_avg}")
         prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
         result["gen_len"] = np.mean(prediction_lens)
+        results["Levenshtein"] = lev_dist_avg
         result = {k: round(v, 4) for k, v in result.items()}
         return result
 
@@ -643,15 +651,14 @@ def main():
         trainer.log_metrics("predict", metrics)
         trainer.save_metrics("predict", metrics)
 
-        if trainer.is_world_process_zero():
-            if training_args.predict_with_generate:
-                predictions = tokenizer.batch_decode(
-                    predict_results.predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
-                )
-                predictions = [pred.strip() for pred in predictions]
-                output_prediction_file = os.path.join(training_args.output_dir, "generated_predictions.txt")
-                with open(output_prediction_file, "w") as writer:
-                    writer.write("\n".join(predictions))
+        if trainer.is_world_process_zero() and training_args.predict_with_generate:
+            predictions = tokenizer.batch_decode(
+                predict_results.predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
+            )
+            predictions = [pred.strip() for pred in predictions]
+            output_prediction_file = os.path.join(training_args.output_dir, "generated_predictions.txt")
+            with open(output_prediction_file, "w") as writer:
+                writer.write("\n".join(predictions))
 
     kwargs = {"finetuned_from": model_args.model_name_or_path, "tasks": "grammar"}
     if data_args.dataset_name is not None:
@@ -670,11 +677,5 @@ def main():
     return results
 
 
-def _mp_fn(index):
-    # For xla_spawn (TPUs)
-    main()
-
-
 if __name__ == "__main__":
     main()
-
